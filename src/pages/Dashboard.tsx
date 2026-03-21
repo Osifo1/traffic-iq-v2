@@ -40,7 +40,13 @@ const StatusBadge = ({ status }: { status: string }) => {
   );
 };
 
-const Dashboard = ({ videoURL, videoName }: { videoURL: string | null; videoName: string | null }) => {
+interface Feed {
+  url: string;
+  name: string;
+  fileName: string;
+}
+
+const Dashboard = ({ feeds }: { feeds: Feed[] }) => {
   const [selectedCamera, setSelectedCamera] = useState(cameraFeeds[0].name);
   const fetcher = useCallback(() => fetchStats(), []);
   const { data: stats, loading, error, retry } = useApi(fetcher);
@@ -126,30 +132,38 @@ const Dashboard = ({ videoURL, videoName }: { videoURL: string | null; videoName
             </div>
           ) : (
             <div className="relative aspect-video rounded-lg bg-muted overflow-hidden border border-border">
-  {videoURL ? (
-    <video
-      src={videoURL}
-      autoPlay
-      muted
-      loop
-      className="w-full h-full object-contain"
-    />
-  ) : (
-    <div className="absolute inset-0 flex items-center justify-center">
-      <div className="text-center space-y-2">
-        <Camera className="w-12 h-12 text-muted-foreground/40 mx-auto" />
-        <p className="text-sm text-muted-foreground">No clip loaded</p>
-        <p className="text-xs text-muted-foreground/60">
-          Upload a clip on the Live Feed page
-        </p>
+  {feeds.length > 0 ? (
+  <div className="grid grid-cols-2 gap-1 w-full h-full">
+    {feeds.filter(Boolean).slice(0, 4).map((feed, i) => (
+      <div key={i} className="relative overflow-hidden">
+        <video
+          src={feed.url}
+          autoPlay
+          muted
+          loop
+          className="w-full h-full object-cover"
+        />
+        <div className="absolute top-1 left-1 bg-background/80 backdrop-blur-sm rounded px-1.5 py-0.5 text-[8px] font-mono text-primary">
+          {feed.name}
+        </div>
+        <div className="absolute top-1 right-1 flex items-center gap-1">
+          <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+          <span className="text-[8px] text-primary">Live</span>
+        </div>
       </div>
+    ))}
+  </div>
+) : (
+  <div className="absolute inset-0 flex items-center justify-center">
+    <div className="text-center space-y-2">
+      <Camera className="w-12 h-12 text-muted-foreground/40 mx-auto" />
+      <p className="text-sm text-muted-foreground">No feeds loaded</p>
+      <p className="text-xs text-muted-foreground/60">
+        Upload clips on the Live Feed page
+      </p>
     </div>
-  )}
-  {videoURL && (
-    <div className="absolute top-3 left-3 bg-background/80 backdrop-blur-sm rounded px-2 py-1 text-[10px] font-mono text-primary">
-      TRAFFICIQ V1 • {videoName}
-    </div>
-  )}
+  </div>
+)}
 </div>
           )}
         </div>

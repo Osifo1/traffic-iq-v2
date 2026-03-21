@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback } from "react";
 import { Download, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { fetchPlates, searchPlates } from "@/lib/api";
+import { fetchPlates } from "@/lib/api";
 import { useApi } from "@/hooks/useApi";
 import { LoadingSpinner, ErrorState } from "@/components/LoadingState";
 
@@ -20,33 +20,24 @@ const StatusBadge = ({ status }: { status: string }) => {
 
 const PlateLog = () => {
   const [search, setSearch] = useState("");
-  const [searchQuery, setSearchQuery] = useState("");
   const [cameraFilter, setCameraFilter] = useState("All");
   const [typeFilter, setTypeFilter] = useState("All");
   const [confidenceThreshold, setConfidenceThreshold] = useState(0);
 
-  const allPlatesFetcher = useCallback(() => fetchPlates(), []);
-  const { data: allPlates, loading: allLoading, error: allError, retry: retryAll } = useApi(allPlatesFetcher);
+  const fetcher = useCallback(() => fetchPlates(), []);
+  const { data: allPlates, loading, error, retry } = useApi(fetcher);
 
-  const searchFetcher = useCallback(() => searchPlates(searchQuery), [searchQuery]);
-  const { data: searchResults, loading: searchLoading, error: searchError, retry: retrySearch } = useApi(searchFetcher);
-
-  const isSearching = searchQuery.length > 0;
-  const rawData = isSearching ? searchResults : allPlates;
-  const loading = isSearching ? searchLoading : allLoading;
-  const error = isSearching ? searchError : allError;
-  const retry = isSearching ? retrySearch : retryAll;
-
-  const plates = Array.isArray(rawData) ? rawData : [];
+  const plates = Array.isArray(allPlates) ? allPlates : [];
 
   const filtered = useMemo(() => {
     return plates.filter((e: any) => {
+      if (search && !((e.plate_text || "").toLowerCase().includes(search.toLowerCase()))) return false;
       if (cameraFilter !== "All" && e.camera !== cameraFilter) return false;
       if (typeFilter !== "All" && e.vehicle_type !== typeFilter) return false;
-      if ((e.best_confidence || 0) < confidenceThreshold) return false;
+      if ((e.confidence || 0) < confidenceThreshold / 100) return false;
       return true;
     });
-  }, [plates, cameraFilter, typeFilter, confidenceThreshold]);
+  }, [plates, search, cameraFilter, typeFilter, confidenceThreshold]);
 
   const cameras = useMemo(() => {
     const set = new Set(plates.map((p: any) => p.camera).filter(Boolean));
@@ -58,14 +49,10 @@ const PlateLog = () => {
     return Array.from(set) as string[];
   }, [plates]);
 
-  const handleSearch = () => {
-    setSearchQuery(search.trim());
-  };
-
   const exportCSV = () => {
     const headers = "Plate,Vehicle Type,Camera,Timestamp,Confidence\n";
     const rows = filtered.map((e: any) =>
-      `${e.canonical_plate},${e.vehicle_type},${e.camera},${e.first_seen},${e.best_confidence}`
+      `${e.plate_text},${e.vehicle_type},${e.camera},${e.timestamp},${e.confidence}`
     ).join("\n");
     const blob = new Blob([headers + rows], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
@@ -79,7 +66,9 @@ const PlateLog = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Plate Log</h1>
-          <p className="text-sm text-muted-foreground">Searchable database of all detected plates</p>
+          <p className="text-sm text-muted-foreground">
+            Searchable database of all detected plates across all camera feeds
+          </p>
         </div>
         <Button onClick={exportCSV} variant="outline" className="border-secondary text-secondary hover:bg-secondary/10">
           <Download className="w-4 h-4 mr-2" />
@@ -97,7 +86,6 @@ const PlateLog = () => {
               placeholder="Search plates..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleSearch()}
               className="w-full bg-muted border border-border rounded-md pl-9 pr-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
             />
           </div>
@@ -110,8 +98,15 @@ const PlateLog = () => {
             {vehicleTypes.map((t) => <option key={t} value={t}>{t}</option>)}
           </select>
           <div className="flex items-center gap-3">
-            <span className="text-xs text-muted-foreground whitespace-nowrap">Confidence ≥ {confidenceThreshold}%</span>
-            <input type="range" min={0} max={100} value={confidenceThreshold} onChange={(e) => setConfidenceThreshold(+e.target.value)} className="flex-1 accent-primary" />
+            <span className="text-xs text-muted-foreground whitespace-nowrap">
+              Confidence ≥ {confidenceThreshold}%
+            </span>
+            <input
+              type="range" min={0} max={100}
+              value={confidenceThreshold}
+              onChange={(e) => setConfidenceThreshold(+e.target.value)}
+              className="flex-1 accent-primary"
+            />
           </div>
         </div>
       </div>
@@ -119,6 +114,11 @@ const PlateLog = () => {
       {/* Table */}
       {loading ? <LoadingSpinner /> : error ? <ErrorState message={error} onRetry={retry} /> : (
         <div className="glow-card overflow-hidden">
+          <div className="p-3 border-b border-border">
+            <span className="text-xs text-muted-foreground">
+              Showing {filtered.length} of {plates.length} records
+            </span>
+          </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
@@ -136,20 +136,26 @@ const PlateLog = () => {
                 {filtered.map((entry: any, i: number) => (
                   <tr key={i} className={`border-b border-border/50 ${i % 2 === 0 ? "bg-muted/20" : ""}`}>
                     <td className="p-3 text-muted-foreground">#{String(i + 1).padStart(4, "0")}</td>
-                    <td className="p-3 font-mono font-medium text-foreground">{entry.canonical_plate}</td>
+                    <td className="p-3 font-mono font-medium text-foreground">{entry.plate_text}</td>
                     <td className="p-3 text-muted-foreground">{entry.vehicle_type}</td>
                     <td className="p-3 text-muted-foreground">{entry.camera}</td>
-                    <td className="p-3 text-muted-foreground font-mono">{entry.first_seen}</td>
+                    <td className="p-3 text-muted-foreground font-mono">{entry.timestamp}</td>
                     <td className="p-3">
-                      <span className={(entry.best_confidence || 0) > 90 ? "text-primary" : "text-amber"}>
-                        {(entry.best_confidence || 0).toFixed(1)}%
+                      <span className={(entry.confidence || 0) > 0.9 ? "text-primary" : "text-amber"}>
+                        {((entry.confidence || 0) * 100).toFixed(1)}%
                       </span>
                     </td>
-                    <td className="p-3"><StatusBadge status={entry.status || "Open"} /></td>
+                    <td className="p-3">
+                      <StatusBadge status={entry.status || "Detected"} />
+                    </td>
                   </tr>
                 ))}
                 {filtered.length === 0 && (
-                  <tr><td colSpan={7} className="p-8 text-center text-muted-foreground">No entries match filters</td></tr>
+                  <tr>
+                    <td colSpan={7} className="p-8 text-center text-muted-foreground">
+                      No entries match filters
+                    </td>
+                  </tr>
                 )}
               </tbody>
             </table>

@@ -6,12 +6,16 @@ import {
   BarChart3,
   Settings,
   TrafficCone,
+  AlertTriangle,
+  UserX,
 } from "lucide-react";
 
 const navItems = [
   { title: "Dashboard", path: "/", icon: LayoutDashboard },
   { title: "Live Feed", path: "/live-feed", icon: Video },
   { title: "Plate Log", path: "/plate-log", icon: FileText },
+  { title: "Incidents", path: "/incidents", icon: AlertTriangle },
+  { title: "Offenders", path: "/offenders", icon: UserX },
   { title: "Analytics", path: "/analytics", icon: BarChart3 },
   { title: "Settings", path: "/settings", icon: Settings },
 ];
@@ -32,14 +36,14 @@ const AppSidebar = () => {
               TRAFFIC<span className="text-primary">IQ</span>
             </h1>
             <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-              V1.0
+              V2.0
             </p>
           </div>
         </div>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-4 space-y-1">
+      <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
         {navItems.map((item) => {
           const isActive =
             item.path === "/"

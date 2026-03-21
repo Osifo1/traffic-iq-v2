@@ -1,91 +1,102 @@
-import { Upload, Play } from "lucide-react";
+import { Upload, Play, X, Camera } from "lucide-react";
 import { Button } from "@/components/ui/button";
-
-interface LiveFeedProps {
-  videoURL: string | null;
-  videoName: string | null;
-  setVideoURL: (url: string | null) => void;
-  setVideoName: (name: string | null) => void;
-}
-
 import { useState, useRef } from "react";
 
-const LiveFeed = ({ videoURL, videoName, setVideoURL, setVideoName }: LiveFeedProps) => {
-  const [progress, setProgress] = useState(0);
-  const [processing, setProcessing] = useState(false);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [dragOver, setDragOver] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+const CAMERA_NAMES = [
+  "Airport Road Feed",
+  "Sapele Road Feed",
+  "Ring Road Checkpoint",
+  "Aduwawa Corridor",
+];
 
-  const handleFileSelect = (file: File) => {
-    if (file && file.type === "video/mp4") {
-      setSelectedFile(file);
-      setVideoURL(URL.createObjectURL(file));
-      setVideoName(file.name);
-      setProgress(0);
-    } else {
+interface Feed {
+  url: string;
+  name: string;
+  fileName: string;
+}
+
+interface LiveFeedProps {
+  feeds: Feed[];
+  setFeeds: (feeds: Feed[]) => void;
+}
+
+const LiveFeed = ({ feeds, setFeeds }: LiveFeedProps) => {
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const [dragOver, setDragOver] = useState<number | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploadingSlot, setUploadingSlot] = useState<number>(0);
+
+  const handleFileSelect = (file: File, slot: number) => {
+    if (!file || file.type !== "video/mp4") {
       alert("Please select a valid MP4 file.");
+      return;
     }
+    const url = URL.createObjectURL(file);
+    const newFeeds = [...feeds];
+    newFeeds[slot] = {
+      url,
+      name: CAMERA_NAMES[slot],
+      fileName: file.name,
+    };
+    setFeeds(newFeeds);
+    setSelectedIndex(slot);
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) handleFileSelect(file);
+    if (file) handleFileSelect(file, uploadingSlot);
+    e.target.value = "";
   };
 
-  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+  const handleRemoveFeed = (index: number) => {
+    const newFeeds = [...feeds];
+    newFeeds[index] = undefined as any;
+    setFeeds(newFeeds.filter((_, i) => i !== index || newFeeds[i]));
+    const cleanFeeds = [...feeds];
+    cleanFeeds[index] = undefined as any;
+    setFeeds(cleanFeeds);
+    if (selectedIndex === index) setSelectedIndex(0);
+  };
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>, slot: number) => {
     e.preventDefault();
-    setDragOver(false);
+    setDragOver(null);
     const file = e.dataTransfer.files?.[0];
-    if (file) handleFileSelect(file);
+    if (file) handleFileSelect(file, slot);
   };
 
-  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    setDragOver(true);
-  };
-
-  const handleDragLeave = () => setDragOver(false);
-
-  const handleRunDetection = () => {
-    if (!selectedFile && !videoURL) {
-      alert("Please upload an MP4 clip first.");
-      return;
-    }
-    setProcessing(true);
-    setProgress(0);
-    const interval = setInterval(() => {
-      setProgress((p) => {
-        if (p >= 100) {
-          clearInterval(interval);
-          setProcessing(false);
-          return 100;
-        }
-        return p + 5;
-      });
-    }, 200);
-  };
+  const activeFeed = feeds[selectedIndex];
 
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-foreground">Live Feed</h1>
         <p className="text-sm text-muted-foreground">
-          Upload a road footage clip and run vehicle detection
+          Upload up to 4 camera feeds and monitor simultaneously
         </p>
       </div>
+
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="video/mp4"
+        className="hidden"
+        onChange={handleInputChange}
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
         {/* Main video player */}
-        <div className="lg:col-span-2">
+        <div className="lg:col-span-2 space-y-4">
           <div className="glow-card overflow-hidden">
             <div className="relative aspect-video bg-muted flex items-center justify-center">
-              {videoURL ? (
+              {activeFeed ? (
                 <video
-                  src={videoURL}
+                  key={activeFeed.url}
+                  src={activeFeed.url}
                   controls
                   autoPlay
+                  loop
                   className="w-full h-full object-contain"
                 />
               ) : (
@@ -93,18 +104,84 @@ const LiveFeed = ({ videoURL, videoName, setVideoURL, setVideoName }: LiveFeedPr
                   <div className="w-16 h-16 rounded-full bg-muted-foreground/10 flex items-center justify-center mx-auto">
                     <Play className="w-8 h-8 text-muted-foreground/30" />
                   </div>
-                  <p className="text-sm text-muted-foreground">No clip loaded</p>
+                  <p className="text-sm text-muted-foreground">No feed selected</p>
                   <p className="text-xs text-muted-foreground/60">
-                    Upload an MP4 file to begin
+                    Upload a clip to one of the camera slots
                   </p>
                 </div>
               )}
-              {videoURL && (
+              {activeFeed && (
                 <div className="absolute top-3 left-3 bg-background/80 backdrop-blur-sm rounded px-2 py-1 text-[10px] font-mono text-primary">
-                  TRAFFICIQ V1 • {videoName}
+                  TRAFFICIQ V2 • {activeFeed.name}
                 </div>
               )}
             </div>
+          </div>
+
+          {/* 4 camera thumbnails */}
+          <div className="grid grid-cols-4 gap-3">
+            {CAMERA_NAMES.map((name, i) => {
+              const feed = feeds[i];
+              return (
+                <div
+                  key={i}
+                  className={`glow-card relative overflow-hidden cursor-pointer transition-all ${
+                    selectedIndex === i ? "border-primary/60 bg-primary/5" : ""
+                  }`}
+                  onClick={() => feed && setSelectedIndex(i)}
+                  onDrop={(e) => handleDrop(e, i)}
+                  onDragOver={(e) => { e.preventDefault(); setDragOver(i); }}
+                  onDragLeave={() => setDragOver(null)}
+                >
+                  <div className={`aspect-video flex flex-col items-center justify-center gap-1 relative ${
+                    dragOver === i ? "bg-primary/10" : ""
+                  }`}>
+                    {feed ? (
+                      <>
+                        <video
+                          src={feed.url}
+                          muted
+                          autoPlay
+                          loop
+                          className="w-full h-full object-cover absolute inset-0"
+                        />
+                        <div className="absolute inset-0 bg-background/30" />
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleRemoveFeed(i); }}
+                          className="absolute top-1 right-1 w-5 h-5 rounded-full bg-destructive flex items-center justify-center z-10"
+                        >
+                          <X className="w-3 h-3 text-white" />
+                        </button>
+                        <div className="absolute bottom-1 left-1 right-1 z-10">
+                          <p className="text-[8px] text-white font-medium truncate px-1">{name}</p>
+                          <div className="flex items-center gap-1">
+                            <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                            <span className="text-[8px] text-primary">Live</span>
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <Camera className="w-5 h-5 text-muted-foreground/40" />
+                        <span className="text-[9px] text-muted-foreground text-center px-1 leading-tight">
+                          {name}
+                        </span>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setUploadingSlot(i);
+                            fileInputRef.current?.click();
+                          }}
+                          className="text-[8px] text-primary underline"
+                        >
+                          Upload
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
 
@@ -112,81 +189,61 @@ const LiveFeed = ({ videoURL, videoName, setVideoURL, setVideoName }: LiveFeedPr
         <div className="space-y-4">
           <div className="glow-card p-5 space-y-4">
             <h2 className="text-sm font-semibold text-foreground">
-              Upload Video Clip
+              Camera Feed Manager
             </h2>
+            <p className="text-xs text-muted-foreground">
+              Upload MP4 clips to each camera slot. Click a slot thumbnail to make it the main feed.
+            </p>
 
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="video/mp4"
-              className="hidden"
-              onChange={handleInputChange}
-            />
-
-            <div
-              onClick={() => fileInputRef.current?.click()}
-              onDrop={handleDrop}
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
-                dragOver
-                  ? "border-primary bg-primary/10"
-                  : videoURL
-                  ? "border-primary/60 bg-primary/5"
-                  : "border-border hover:border-primary/40"
-              }`}
-            >
-              <Upload className="w-10 h-10 text-muted-foreground/50 mx-auto mb-3" />
-              {videoURL ? (
-                <>
-                  <p className="text-sm text-primary font-medium truncate px-2">
-                    {videoName}
-                  </p>
-                  <p className="text-xs text-muted-foreground/60 mt-1">
-                    Click to replace
-                  </p>
-                </>
-              ) : (
-                <>
-                  <p className="text-sm text-muted-foreground">
-                    Drag & drop an MP4 file
-                  </p>
-                  <p className="text-xs text-muted-foreground/60 mt-1">
-                    or click to browse
-                  </p>
-                </>
-              )}
-            </div>
-
-            <Button
-              onClick={handleRunDetection}
-              disabled={processing || !videoURL}
-              className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
-            >
-              <Play className="w-4 h-4 mr-2" />
-              {processing ? "Processing..." : "Run Detection"}
-            </Button>
+            {CAMERA_NAMES.map((name, i) => (
+              <div key={i} className="space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-medium text-foreground">{name}</span>
+                  {feeds[i] && (
+                    <button
+                      onClick={() => handleRemoveFeed(i)}
+                      className="text-[10px] text-destructive hover:underline"
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
+                {feeds[i] ? (
+                  <div className="flex items-center gap-2 bg-primary/5 border border-primary/20 rounded px-2 py-1.5">
+                    <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+                    <span className="text-[10px] text-primary truncate">{feeds[i].fileName}</span>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => {
+                      setUploadingSlot(i);
+                      fileInputRef.current?.click();
+                    }}
+                    className="w-full border border-dashed border-border rounded px-3 py-2 text-[10px] text-muted-foreground hover:border-primary/40 hover:text-primary transition-colors text-left"
+                  >
+                    + Click to upload MP4
+                  </button>
+                )}
+              </div>
+            ))}
           </div>
 
-          {(processing || progress > 0) && (
-            <div className="glow-card p-5 space-y-3">
-              <div className="flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-foreground">Processing</h3>
-                <span className="text-xs font-mono text-primary">{progress}%</span>
-              </div>
-              <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-primary rounded-full transition-all duration-200"
-                  style={{ width: `${progress}%` }}
-                />
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {progress < 100
-                  ? "Analyzing frames for vehicle and plate detection..."
-                  : "Detection complete — results ready"}
-              </p>
+          {/* Active feeds summary */}
+          <div className="glow-card p-4 space-y-2">
+            <h3 className="text-xs font-semibold text-foreground">Feed Status</h3>
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-muted-foreground">Active Feeds</span>
+              <span className="text-xs font-mono text-primary">
+                {feeds.filter(Boolean).length} / 4
+              </span>
             </div>
-          )}
+            <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
+              <div
+                className="h-full bg-primary rounded-full transition-all"
+                style={{ width: `${(feeds.filter(Boolean).length / 4) * 100}%` }}
+              />
+            </div>
+          </div>
         </div>
       </div>
     </div>
