@@ -48,11 +48,13 @@ const Dashboard = ({ videoURL, videoName }: { videoURL: string | null; videoName
   if (loading) return <LoadingSpinner />;
   if (error || !stats) return <ErrorState message={error || "Failed to load"} onRetry={retry} />;
 
-  const activeCameras = stats.camera_counts ? Object.keys(stats.camera_counts).length : 0;
-  const vehicleCounts = stats.vehicle_counts || {};
-  const totalVehicles = stats.unique_vehicles || Object.values(vehicleCounts).reduce((a: number, b: any) => a + (b as number), 0);
+  const totalVehicles = stats.total_vehicles || 0;
+  const activeCameras = stats.vehicles_per_feed ? Object.keys(stats.vehicles_per_feed).length : 0;
+  const openIncidents = stats.open_incidents || 0;
+  const watchlistHits = stats.watchlist_hits || 0;
+  const vehicleCounts = stats.vehicles_by_type || {};
 
-  // Build chart data from vehicle_counts
+  // Build chart data from vehicles_by_type
   const chartData = Object.entries(vehicleCounts).map(([type, count]) => ({
     type,
     count: count as number,
@@ -80,9 +82,9 @@ const Dashboard = ({ videoURL, videoName }: { videoURL: string | null; videoName
       {/* Stat cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard label="Total Vehicles Detected" value={totalVehicles} icon={Car} color="bg-primary/10 text-primary" />
-        <StatCard label="Plates Read" value={stats.total_plates || 0} icon={CreditCard} color="bg-secondary/20 text-secondary" />
-        <StatCard label="Active Camera Feeds" value={activeCameras} icon={Camera} color="bg-primary/10 text-primary" />
-        <StatCard label="Incidents Flagged" value={stats.incidents_flagged || 0} icon={AlertTriangle} color="bg-amber/10 text-amber" />
+<StatCard label="Open Incidents" value={openIncidents} icon={AlertTriangle} color="bg-amber/10 text-amber" />
+<StatCard label="Active Camera Feeds" value={activeCameras} icon={Camera} color="bg-primary/10 text-primary" />
+<StatCard label="Watchlist Hits" value={watchlistHits} icon={CreditCard} color="bg-destructive/10 text-destructive" />
       </div>
 
       {/* Two columns: video + plate log */}
