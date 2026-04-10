@@ -6,23 +6,23 @@
 
 @layer base {
   :root {
-    --background: 220 45% 10%;
---foreground: 210 20% 92%;
+    --background: 222 60% 7%;
+    --foreground: 210 20% 90%;
 
---card: 220 40% 13%;
---card-foreground: 210 20% 92%;
+    --card: 222 50% 10%;
+    --card-foreground: 210 20% 90%;
 
---popover: 220 40% 13%;
---popover-foreground: 210 20% 92%;
+    --popover: 222 50% 10%;
+    --popover-foreground: 210 20% 90%;
 
-    --primary: 42 95% 52%;
+    --primary: 160 100% 39%;
     --primary-foreground: 222 60% 7%;
 
     --secondary: 216 70% 37%;
     --secondary-foreground: 210 40% 98%;
 
-    --muted: 220 35% 17%;
---muted-foreground: 215 20% 60%;
+    --muted: 222 40% 14%;
+    --muted-foreground: 215 20% 55%;
 
     --accent: 216 70% 37%;
     --accent-foreground: 210 40% 98%;
@@ -33,22 +33,22 @@
     --amber: 38 92% 50%;
     --amber-foreground: 222 60% 7%;
 
-    --border: 220 28% 22%;
---input: 220 28% 22%;
-    --ring: 42 95% 52%;
+    --border: 222 30% 18%;
+    --input: 222 30% 18%;
+    --ring: 160 100% 39%;
 
     --radius: 0.5rem;
 
-    --sidebar-background: 220 42% 9%;
+    --sidebar-background: 222 55% 8%;
     --sidebar-foreground: 215 20% 65%;
-    --sidebar-primary: 42 95% 52%;
+    --sidebar-primary: 160 100% 39%;
     --sidebar-primary-foreground: 222 60% 7%;
-   --sidebar-accent: 220 35% 17%;
+    --sidebar-accent: 222 40% 14%;
     --sidebar-accent-foreground: 210 20% 90%;
-    --sidebar-border: 220 28% 18%;
-    --sidebar-ring: 42 95% 52%;
+    --sidebar-border: 222 30% 15%;
+    --sidebar-ring: 160 100% 39%;
 
-    --chart-green: 42 95% 52%;
+    --chart-green: 160 100% 39%;
     --chart-blue: 216 70% 37%;
     --chart-cyan: 190 80% 50%;
     --chart-amber: 38 92% 50%;
@@ -68,8 +68,8 @@
   /* Hex grid background pattern */
   .bg-grid-pattern {
     background-image:
-      linear-gradient(rgba(230, 160, 0, 0.05) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(230, 160, 0, 0.05) 1px, transparent 1px);
+      linear-gradient(rgba(0, 200, 150, 0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0, 200, 150, 0.03) 1px, transparent 1px);
     background-size: 40px 40px;
   }
 }

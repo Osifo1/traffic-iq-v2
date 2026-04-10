@@ -87,7 +87,7 @@ const LiveFeed = ({ feeds, setFeeds }: LiveFeedProps) => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
         {/* Main video player */}
-        <div className="lg:col-span-2 space-y-4">
+        <div className="lg:col-span-2 space-y-4 md:order-2 lg:order-1">
           <div className="glow-card overflow-hidden">
             <div className="relative aspect-video bg-muted flex items-center justify-center">
               {activeFeed ? (
@@ -119,7 +119,7 @@ const LiveFeed = ({ feeds, setFeeds }: LiveFeedProps) => {
           </div>
 
           {/* 4 camera thumbnails */}
-          <div className="grid grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             {CAMERA_NAMES.map((name, i) => {
               const feed = feeds[i];
               return (
@@ -186,7 +186,7 @@ const LiveFeed = ({ feeds, setFeeds }: LiveFeedProps) => {
         </div>
 
         {/* Upload panel */}
-        <div className="space-y-4">
+        <div className="space-y-4 md:order-1 lg:order-2">
           <div className="glow-card p-5 space-y-4">
             <h2 className="text-sm font-semibold text-foreground">
               Camera Feed Manager

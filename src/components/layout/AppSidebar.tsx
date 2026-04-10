@@ -1,4 +1,5 @@
 import { NavLink, useLocation } from "react-router-dom";
+import { useState } from "react";
 import {
   LayoutDashboard,
   Video,
@@ -8,6 +9,7 @@ import {
   TrafficCone,
   AlertTriangle,
   UserX,
+  X,
 } from "lucide-react";
 
 const navItems = [
@@ -20,13 +22,25 @@ const navItems = [
   { title: "Settings", path: "/settings", icon: Settings },
 ];
 
-const AppSidebar = () => {
+const AppSidebar = ({ isOpen, onClose }) => {
   const location = useLocation();
 
   return (
-    <aside className="fixed left-0 top-0 bottom-0 w-64 bg-sidebar border-r border-sidebar-border flex flex-col z-50">
+    <>
+      {/* Mobile overlay */}
+      {isOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          onClick={onClose}
+        />
+      )}
+      
+      {/* Sidebar */}
+      <aside className={`fixed left-0 top-0 bottom-0 w-64 bg-sidebar border-r border-sidebar-border flex flex-col z-50 transform transition-transform duration-300 ease-in-out ${
+        isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+      } lg:flex`}>
       {/* Logo */}
-      <div className="p-6 border-b border-sidebar-border">
+      <div className="p-6 border-b border-sidebar-border flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
             <TrafficCone className="w-6 h-6 text-primary" />
@@ -40,6 +54,12 @@ const AppSidebar = () => {
             </p>
           </div>
         </div>
+        <button
+          onClick={onClose}
+          className="lg:hidden p-2 rounded-lg hover:bg-sidebar-accent transition-colors"
+        >
+          <X className="w-5 h-5 text-sidebar-foreground" />
+        </button>
       </div>
 
       {/* Navigation */}
@@ -86,6 +106,7 @@ const AppSidebar = () => {
         </div>
       </div>
     </aside>
+    </>
   );
 };
 
